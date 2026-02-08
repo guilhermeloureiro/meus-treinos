@@ -400,6 +400,95 @@ export default function HomePage() {
     return <PostWorkout stats={workoutStats} history={history} onHome={goHome} />;
   }
 
+  // HISTORY VIEW
+  if (view === AppView.HISTORY) {
+    return (
+      <Container className="animate-fade-in pt-8">
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => setView(AppView.HOME)} className="p-2 -ml-2 text-textSec hover:text-textMain">
+            <ArrowLeft size={24} />
+          </button>
+          <Title className="!text-2xl !mb-0">Histórico de Treinos</Title>
+        </div>
+
+        {history.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 mt-20">
+            <div className="w-20 h-20 bg-surfaceHighlight rounded-full flex items-center justify-center mb-4">
+              <List size={32} className="text-textSec" />
+            </div>
+            <p className="text-textSec text-lg">Nenhum treino completado ainda</p>
+            <p className="text-textSec/60 text-sm mt-2">Complete seu primeiro treino para ver o histórico</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Stats Summary */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <Card className="bg-accent/10 border-accent/20 text-center">
+                <div className="text-2xl font-bold text-accent">{history.length}</div>
+                <div className="text-xs text-textSec mt-1">Treinos</div>
+              </Card>
+              <Card className="bg-accent/10 border-accent/20 text-center">
+                <div className="text-2xl font-bold text-accent">{stats?.cycle_count || 0}</div>
+                <div className="text-xs text-textSec mt-1">Ciclos</div>
+              </Card>
+              <Card className="bg-accent/10 border-accent/20 text-center">
+                <div className="text-2xl font-bold text-accent">
+                  {Math.round(history.reduce((acc, h) => acc + h.duration_seconds, 0) / 60)}
+                </div>
+                <div className="text-xs text-textSec mt-1">Min Total</div>
+              </Card>
+            </div>
+
+            {/* History List */}
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-textSec uppercase tracking-wider">
+                Últimos Treinos
+              </label>
+              {history.slice().reverse().map((item) => {
+                const date = new Date(item.completed_at);
+                const duration = Math.floor(item.duration_seconds / 60);
+
+                return (
+                  <Card key={item.id} className="bg-surfaceHighlight/20">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-textMain">{item.workout_title}</h3>
+                        <p className="text-xs text-textSec mt-1">
+                          {date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })} às {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <div className="text-sm font-semibold text-accent">{duration} min</div>
+                        <div className="text-xs text-textSec mt-1">
+                          {item.exercises_completed} exercícios
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Exercise Details */}
+                    <div className="mt-3 pt-3 border-t border-border/50 space-y-1">
+                      {item.exercise_data.slice(0, 3).map((ex, idx) => (
+                        <div key={idx} className="text-xs text-textSec flex justify-between">
+                          <span className="truncate">{ex.name}</span>
+                          <span className="ml-2 text-textSec/60">{ex.sets} × {ex.reps}</span>
+                        </div>
+                      ))}
+                      {item.exercise_data.length > 3 && (
+                        <div className="text-xs text-textSec/60 italic">
+                          +{item.exercise_data.length - 3} mais...
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Container>
+    );
+  }
+
   // SETTINGS VIEW
   if (view === AppView.SETTINGS) {
     return (
@@ -613,9 +702,14 @@ export default function HomePage() {
         {/* Header - Sticky */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border px-6 py-4">
           <div className="flex justify-between items-start mb-2">
-            <div>
-              <h2 className="text-xl font-bold text-textMain">{currentPlan.title}</h2>
-              <p className="text-textSec text-xs">Toque na carga para editar</p>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setView(AppView.HOME)} className="p-2 -ml-2 text-textSec hover:text-textMain">
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <h2 className="text-xl font-bold text-textMain">{currentPlan.title}</h2>
+                <p className="text-textSec text-xs">Toque na carga para editar</p>
+              </div>
             </div>
             <div className="text-accent font-mono text-sm font-semibold">
               {Math.round(progress)}%
@@ -644,8 +738,12 @@ export default function HomePage() {
 
         {/* Footer Action - Sticky */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent z-20">
-          <Button onClick={finishWorkout} variant="primary">
-            Finalizar Treino
+          <Button
+            onClick={finishWorkout}
+            variant="primary"
+            disabled={completedCount !== (currentPlan.exercises || []).length}
+          >
+            Finalizar Treino {completedCount === (currentPlan.exercises || []).length ? '✓' : `(${completedCount}/${(currentPlan.exercises || []).length})`}
           </Button>
         </div>
       </div>
@@ -662,10 +760,14 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end mr-1">
+          <button
+            onClick={() => setView(AppView.HISTORY)}
+            className="flex flex-col items-end mr-1 hover:opacity-80 transition-opacity cursor-pointer"
+            title="Ver Histórico"
+          >
             <span className="text-[10px] text-textSec font-bold uppercase tracking-widest">Ciclos</span>
             <span className="text-xl font-bold text-accent leading-none">{stats?.cycle_count || 0}</span>
-          </div>
+          </button>
           <button
             onClick={() => setView(AppView.SETTINGS)}
             className="w-10 h-10 rounded-full bg-surfaceHighlight flex items-center justify-center text-textSec hover:text-textMain hover:bg-surfaceHighlight/80 transition-all shadow-sm"
