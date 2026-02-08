@@ -8,6 +8,7 @@ export interface Exercise {
   notes?: string; // Drop set, cluster set, etc
   position: number;
   completed?: boolean; // Client-side only
+  video_filename?: string;
 }
 
 export interface Workout {

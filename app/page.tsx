@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Dumbbell, Plus, Trash2, ArrowLeft, Save, List, Edit2, GripVertical, ChevronUp, ChevronDown, Settings, Download, Upload, FileJson, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Play, Dumbbell, Plus, Trash2, ArrowLeft, Save, List, Edit2, GripVertical, ChevronUp, ChevronDown, Settings, Download, Upload, FileJson, AlertTriangle, LogOut } from 'lucide-react';
 import { AppView, Workout, Exercise, WorkoutStats, WorkoutHistory, UserStats } from '@/lib/types';
 import { Container, Title, Subtitle, Button, Input, Card } from '@/components/UI';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { PostWorkout } from '@/components/PostWorkout';
+import { isAuthenticated, logout } from '@/lib/auth';
 
 export default function HomePage() {
+  const router = useRouter();
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [loading, setLoading] = useState(true);
 
@@ -35,9 +38,14 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Load Data ---
+  // Check authentication and load data on mount
   useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/login');
+      return;
+    }
     loadData();
-  }, []);
+  }, [router]);
 
   const loadData = async () => {
     try {
@@ -774,6 +782,16 @@ export default function HomePage() {
             title="Configurações e Backup"
           >
             <Settings size={18} />
+          </button>
+          <button
+            onClick={() => {
+              logout();
+              router.push('/login');
+            }}
+            className="w-10 h-10 rounded-full bg-surfaceHighlight flex items-center justify-center text-textSec hover:text-error hover:bg-error/10 transition-all shadow-sm"
+            title="Sair"
+          >
+            <LogOut size={18} />
           </button>
         </div>
       </div>
