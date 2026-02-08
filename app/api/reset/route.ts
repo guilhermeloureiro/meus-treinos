@@ -20,6 +20,24 @@ export async function POST() {
 
         if (statsError) throw statsError;
 
+        // 3. Reset workout order (by title)
+        const { data: workouts, error: workoutsError } = await supabase
+            .from('workouts')
+            .select('id, title')
+            .order('title', { ascending: true }); // Get them in "correct" order: A, B, C or 1, 2, 3
+
+        if (workoutsError) throw workoutsError;
+
+        if (workouts && workouts.length > 0) {
+            // Update positions to match the alphabetical/numerical order
+            for (let i = 0; i < workouts.length; i++) {
+                await supabase
+                    .from('workouts')
+                    .update({ position: i }) // Reset position: 0, 1, 2...
+                    .eq('id', workouts[i].id);
+            }
+        }
+
         return NextResponse.json({ success: true, message: 'Data reset successfully' });
     } catch (error) {
         console.error('Error resetting data:', error);
