@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Dumbbell, Plus, Trash2, ArrowLeft, Save, List, Edit2, GripVertical, ChevronUp, ChevronDown, Settings, Download, Upload, FileJson, AlertTriangle, LogOut } from 'lucide-react';
+import { Play, Dumbbell, Plus, Trash2, ArrowLeft, Save, List, Edit2, GripVertical, ChevronUp, ChevronDown, Settings, LogOut } from 'lucide-react';
 import { AppView, Workout, Exercise, WorkoutStats, WorkoutHistory, UserStats } from '@/lib/types';
 import { Container, Title, Subtitle, Button, Input, Card } from '@/components/UI';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -35,7 +35,7 @@ export default function HomePage() {
   const dragSourceIndex = useRef<number | null>(null);
 
   // Input ref for file upload
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // --- Load Data ---
   // Check authentication and load data on mount
@@ -100,55 +100,25 @@ export default function HomePage() {
     }
   }, [currentPlan, startTime, view]);
 
-  // --- BACKUP SYSTEM (Export/Import) ---
-  const handleExportBackup = async () => {
-    const backupData = {
-      version: 2,
-      date: new Date().toISOString(),
-      savedWorkouts,
-      history,
-      stats
-    };
-
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `meustreinos-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
+  /* 
+   * RESET LOGIC 
+   */
+  const handleResetData = async () => {
+    if (confirm("ATENÇÃO: Isso apagará APENAS o histórico de treinos e zerará a contagem de ciclos. Seus treinos cadastrados serão MANTIDOS.\n\nDeseja continuar?")) {
       try {
-        const content = e.target?.result as string;
-        const data = JSON.parse(content);
+        setLoading(true);
+        const res = await fetch('/api/reset', { method: 'POST' });
 
-        if (!Array.isArray(data.savedWorkouts)) throw new Error("Formato inválido");
+        if (!res.ok) throw new Error('Failed to reset');
 
-        if (confirm(`Restaurar backup de ${new Date(data.date).toLocaleDateString()}? Isso substituirá seus dados atuais.`)) {
-          alert("Funcionalidade de importação será implementada em breve!");
-          // TODO: Implement API call to restore backup
-        }
-      } catch (err) {
-        alert("Erro ao ler arquivo de backup. Verifique se é um arquivo .json válido.");
-        console.error(err);
+        alert('Histórico e ciclos resetados com sucesso!');
+        await loadData();
+      } catch (error) {
+        console.error('Error resetting:', error);
+        alert('Erro ao resetar dados.');
+      } finally {
+        setLoading(false);
       }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
-
-  const handleResetData = () => {
-    if (confirm("ATENÇÃO: Isso apagará TODOS os seus treinos e histórico permanentemente. Deseja continuar?")) {
-      alert("Funcionalidade de reset será implementada em breve!");
-      // TODO: Implement API call to reset all data
     }
   };
 
@@ -512,54 +482,28 @@ export default function HomePage() {
           <Card className="bg-surfaceHighlight/10 border-accent/20">
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-full bg-accent/10 text-accent">
-                <FileJson size={24} />
+                <Settings size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-textMain">Backup Local</h3>
+                <h3 className="text-lg font-bold text-textMain">Recomeçar Ciclos</h3>
                 <p className="text-textSec text-sm mt-1">
-                  Baixe um arquivo com todos os seus treinos e histórico para não perder nada.
+                  Isso irá zerar seu histórico de treinos e contagem de ciclos.
+                  <strong className="block mt-1 text-accent">Seus exercícios e treinos montados SERÃO MANTIDOS.</strong>
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <Button variant="secondary" onClick={handleExportBackup}>
-                <Download size={18} /> Exportar
-              </Button>
-              <div className="relative">
-                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={18} /> Importar
-                </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleImportBackup}
-                />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-error/5 border-error/20 mt-8">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-full bg-error/10 text-error">
-                <AlertTriangle size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-textMain">Zona de Perigo</h3>
-                <p className="text-textSec text-sm mt-1">
-                  Apagar todos os dados do aplicativo. Esta ação não pode ser desfeita.
-                </p>
-              </div>
-            </div>
-            <Button variant="ghost" className="mt-4 text-error hover:bg-error/10 hover:text-error w-full" onClick={handleResetData}>
-              <Trash2 size={18} /> Resetar Aplicativo
+            <Button
+              variant="ghost"
+              className="mt-6 text-textMain hover:bg-accent/10 hover:text-accent w-full border border-border"
+              onClick={handleResetData}
+            >
+              <Trash2 size={18} /> Resetar Histórico e Ciclos
             </Button>
           </Card>
         </div>
 
         <div className="mt-auto py-8 text-center">
-          <p className="text-textSec text-xs">Meus Treinos v2.0</p>
+          <p className="text-textSec text-xs">Meus Treinos v2.1</p>
           <p className="text-textSec text-[10px] mt-1 opacity-50">Supabase + Next.js</p>
         </div>
       </Container>
