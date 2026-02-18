@@ -24,9 +24,22 @@ export async function GET() {
 
                 if (exercisesError) throw exercisesError;
 
+                // Parse video_filename if it's a JSON array string
+                const parsedExercises = (exercises || []).map(ex => {
+                    if (ex.video_filename && typeof ex.video_filename === 'string' && ex.video_filename.startsWith('[')) {
+                        try {
+                            return { ...ex, video_filename: JSON.parse(ex.video_filename) };
+                        } catch (e) {
+                            // If parsing fails, keep as string
+                            return ex;
+                        }
+                    }
+                    return ex;
+                });
+
                 return {
                     ...workout,
-                    exercises: exercises || [],
+                    exercises: parsedExercises,
                 };
             })
         );

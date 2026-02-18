@@ -14,16 +14,26 @@ interface ExerciseCardProps {
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onToggle, onWeightChange, isEditing = false }) => {
   const isCompleted = exercise.completed;
   const [showVideo, setShowVideo] = useState(false);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
 
   // Handler to stop propagation when clicking the input so it doesn't toggle completion
   const handleInputClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
-  const handleVideoClick = (e: React.MouseEvent) => {
+  const handleVideoClick = (e: React.MouseEvent, videoIndex: number = 0) => {
     e.stopPropagation();
+    setSelectedVideoIndex(videoIndex);
     setShowVideo(true);
   };
+
+  // Normalize video_filename to always be an array
+  const videoFiles = exercise.video_filename
+    ? (Array.isArray(exercise.video_filename) ? exercise.video_filename : [exercise.video_filename])
+    : [];
+
+  const hasVideos = videoFiles.length > 0;
+  const hasMultipleVideos = videoFiles.length > 1;
 
   return (
     <>
@@ -66,14 +76,32 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onToggle, 
                 )}
               </div>
 
-              {exercise.video_filename && !isEditing && (
-                <button
-                  onClick={handleVideoClick}
-                  className="flex items-center gap-1.5 text-accent hover:text-accentHover transition-colors ml-auto sm:ml-0 bg-accent/10 px-2 py-1 rounded-md"
-                >
-                  <PlayCircle size={14} />
-                  <span className="text-xs font-medium">Ver execução</span>
-                </button>
+              {hasVideos && !isEditing && (
+                <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  {hasMultipleVideos ? (
+                    // Multiple videos - show numbered buttons
+                    videoFiles.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={(e) => handleVideoClick(e, index)}
+                        className="flex items-center gap-1.5 text-accent hover:text-accentHover transition-colors bg-accent/10 hover:bg-accent/20 px-2 py-1 rounded-md"
+                        title={`Ver opção ${index + 1}`}
+                      >
+                        <PlayCircle size={14} />
+                        <span className="text-xs font-medium">{index + 1}</span>
+                      </button>
+                    ))
+                  ) : (
+                    // Single video - show regular button
+                    <button
+                      onClick={(e) => handleVideoClick(e, 0)}
+                      className="flex items-center gap-1.5 text-accent hover:text-accentHover transition-colors bg-accent/10 px-2 py-1 rounded-md"
+                    >
+                      <PlayCircle size={14} />
+                      <span className="text-xs font-medium">Ver execução</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -99,10 +127,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onToggle, 
         `} />
       </Card>
 
-      {showVideo && exercise.video_filename && (
+      {showVideo && hasVideos && (
         <VideoPlayer
-          videoFilename={exercise.video_filename}
-          videoTitle={exercise.name}
+          videoFilename={videoFiles[selectedVideoIndex]}
+          videoTitle={`${exercise.name}${hasMultipleVideos ? ` - Opção ${selectedVideoIndex + 1}` : ''}`}
           onClose={() => setShowVideo(false)}
         />
       )}

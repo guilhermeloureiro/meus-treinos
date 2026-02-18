@@ -8,7 +8,7 @@ export interface Exercise {
   notes?: string; // Drop set, cluster set, etc
   position: number;
   completed?: boolean; // Client-side only
-  video_filename?: string;
+  video_filename?: string | string[]; // Pode ter um ou múltiplos vídeos
 }
 
 export interface Workout {
